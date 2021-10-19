@@ -10,6 +10,11 @@ class Server {
         this._events = new Events()
         auth.init()
         this.createServer(port)
+        this._clients = []
+    }
+
+    get clients () {
+        return this._clients
     }
 
     get events () {
@@ -18,11 +23,18 @@ class Server {
 
     handleConnection (client) {
         const oClient = new Client(client)
+        if (this._clients.indexOf(oClient) < 0) {
+            this._clients.push(oClient)
+        }
         oClient.events.on('screen.created', c => {
-            this._events.emit('client.connected', oClient)
+            this._events.emit('client.connected', { server: this, client: oClient })
         })
         oClient.events.on('screen.destroyed', c => {
-            this._events.emit('client.disconnected', oClient)
+            this._events.emit('client.disconnected', { server: this, client: oClient })
+            const iClient = this._clients.indexOf(oClient)
+            if (iClient >= 0) {
+                this._clients.splice(iClient, 1)
+            }
         })
     }
 

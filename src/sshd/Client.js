@@ -12,11 +12,16 @@ class Client {
         this._screen = null
         this._stream = null
         this._id = ++CLIENT_LAST_ID
+        this._data = {}
         client.on('authentication', ctx => this.handleAuthentication(ctx))
         client.on('ready', () => this.handleReady())
         client.on('close', () => this.handleClose())
         console.log('client', this.id, 'connected')
         this._events = new Events()
+    }
+
+    get data () {
+        return this._data
     }
 
     get events () {
@@ -107,7 +112,7 @@ class Client {
 
     getScreen (stream) {
         const screen = blessed.screen({
-            title: 'SSHception',
+            title: 'o876-sshd',
             smartCSR: true,
             terminal: 'xterm-256color',
             input: stream.stdout,
