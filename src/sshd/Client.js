@@ -11,12 +11,17 @@ class Client {
         this._session = null
         this._screen = null
         this._stream = null
+        this._data = {}
         this._id = ++CLIENT_LAST_ID
         client.on('authentication', ctx => this.handleAuthentication(ctx))
         client.on('ready', () => this.handleReady())
         client.on('close', () => this.handleClose())
         console.log('client', this.id, 'connected')
         this._events = new Events()
+    }
+
+    get data () {
+        return this._data
     }
 
     get events () {
@@ -123,7 +128,6 @@ class Client {
 
         return screen
     }
-
 
 }
 
