@@ -41,7 +41,7 @@ Lineinput.prototype._listener = function(ch, key) {
 Lineinput.prototype.pushHistory = function (sText) {
     const bEmpty = this.history.length === 0
     const prev = bEmpty ? '' : this.history[this.history.length - 1]
-    if (bEmpty || (prev !== '' && prev !== sText)) {
+    if (bEmpty || (prev !== '' && prev !== sText && sText !== '')) {
         this.history.push(sText)
     }
     this._iHistory = 0

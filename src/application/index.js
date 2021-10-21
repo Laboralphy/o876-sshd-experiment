@@ -13,18 +13,27 @@ function createMudView (parent) {
         scrollable: true,
         alwaysScroll: true,
         mouse: true
-   })
+    })
+    const textPrompt = blessed.text({
+        parent,
+        width: 1,
+        height: 1,
+        top: '100%-1',
+        left: 0,
+        content: '>'
+    })
     const inputCommand = blessed.widget.lineinput({
         parent,
         top: '100%-1',
-        left: 0,
+        left: 2,
         height: 1,
-        width: '100%',
+        width: '100%-2',
         input: true,
         inputOnFocus: true
     })
     return {
         console,
+        textPrompt,
         inputCommand
     }
 }
@@ -59,7 +68,6 @@ async function application (server, client) {
     csl.pushLine('{yellow-fg}Bienvenue sur le serveur.{/yellow-fg}')
 
     ic.key(['escape'], function (ch, key) {
-        console.log('ECHAP')
         focusCommand(client)
     })
 
