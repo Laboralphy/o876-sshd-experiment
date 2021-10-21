@@ -11,6 +11,7 @@ class Client {
         this._session = null
         this._screen = null
         this._stream = null
+        this._data = {}
         this._id = ++CLIENT_LAST_ID
         this._data = {}
         client.on('authentication', ctx => this.handleAuthentication(ctx))
@@ -117,7 +118,8 @@ class Client {
             terminal: 'xterm-256color',
             input: stream.stdout,
             output: stream.stdin,
-            autoPadding: true
+            autoPadding: true,
+            fullUnicode: true
         });
 
         screen.on('destroy', () => {
@@ -128,7 +130,6 @@ class Client {
 
         return screen
     }
-
 
 }
 

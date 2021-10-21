@@ -10,11 +10,24 @@ class Server {
         this._events = new Events()
         auth.init()
         this.createServer(port)
-        this._clients = []
+        this._aClients = []
     }
 
     get clients () {
-        return this._clients
+        return this._aClients
+    }
+
+    addClient (oClient) {
+        if (this._aClients.indexOf(oClient) < 0) {
+            this._aClients.push(oClient)
+        }
+    }
+
+    removeClient (oClient) {
+        const iClient = this._aClients.indexOf(oClient)
+        if (iClient >= 0) {
+            this._aClients.splice(iClient, 1)
+        }
     }
 
     get events () {
@@ -23,18 +36,17 @@ class Server {
 
     handleConnection (client) {
         const oClient = new Client(client)
-        if (this._clients.indexOf(oClient) < 0) {
-            this._clients.push(oClient)
-        }
+        this.addClient(oClient)
         oClient.events.on('screen.created', c => {
-            this._events.emit('client.connected', { server: this, client: oClient })
+            this._events.emit('client.connected', { client: oClient, server: this })
         })
         oClient.events.on('screen.destroyed', c => {
-            this._events.emit('client.disconnected', { server: this, client: oClient })
-            const iClient = this._clients.indexOf(oClient)
-            if (iClient >= 0) {
-                this._clients.splice(iClient, 1)
-            }
+            this._events.emit('client.disconnected', { client: oClient, server: this })
+            this.removeClient(oClient)
+        })
+        oClient.events.on('screen.resize', ({ cols, rows }) => {
+            this._events.emit('window.resize', { client: oClient, server: this, cols, rows })
+            this.removeClient(oClient)
         })
     }
 
