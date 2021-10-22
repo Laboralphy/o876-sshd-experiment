@@ -1,4 +1,3 @@
-require('dotenv').config()
 const debug = require('debug')
 const auth = require('./auth')
 const SSH2 = require('ssh2');
@@ -8,7 +7,7 @@ const Events = require('events')
 class Server {
     constructor (port) {
         this._events = new Events()
-        auth.init()
+        auth.init(process.env)
         this.createServer(port)
         this._aClients = []
     }

@@ -11,14 +11,33 @@ const PATH = {
     PRIV_KEY: ''
 }
 
+const GLOBALS = {
+    WRONG_PASSWORD_DELAY: 0,
+    PATH_SECRET
+}
+
 const USERS = {}
 
-function loadConfig () {
-    PATH.SECRET = path.resolve(process.env.PATH_SECRET)
+/**
+ * Définition des variables globales stockant les chemins qui mène aux information clients (pass, username, id etc...)
+ */
+function definePathVariables () {
+    // dossier général contenant les information sensible (clé pub ou priv etc...)
+    // Ce dossier doit être extérieur à l'application
+    PATH.SECRET = path.resolve(GLOBALS.PATH_SECRET)
+    // Dossier des fichiers utilisateurs
     PATH.USERS = path.join(PATH.SECRET, 'users')
+    // Dossier content la clé privée du serveur
     PATH.PRIV_KEY = path.join(PATH.SECRET, 'host.key')
 }
 
+/**
+ * Renvoie true si le fichier spécifié existe sur le système de fichier
+ * Il s'agit d'un processus synchrone car il est utilisé lors de la phase d'initialisation
+ * bien avant la connexion du moindre client.
+ * @param sPath {string} chemin et nom de fichier
+ * @returns {boolean} true = le fichier existe, false = le fichier n'existe pas
+ */
 function exists (sPath) {
     try {
         fs.statSync(sPath)
@@ -28,6 +47,10 @@ function exists (sPath) {
     }
 }
 
+/**
+ * Vérifie l'existence des dossier nécessaire aux stockage des clé serveur et client
+ * @throws Error si l'un des dossier n'existe pas
+ */
 function checkFolders () {
     const cx = sPath => {
         if (!exists(sPath)) {
@@ -39,6 +62,9 @@ function checkFolders () {
     cx(PATH.PRIV_KEY)
 }
 
+/**
+ * Charge la liste des utilisateurs.
+ */
 function loadUsers () {
     const aFiles = fs.readdirSync(PATH.USERS)
     aFiles.forEach(sFile => {
@@ -53,9 +79,9 @@ function loadUsers () {
  * Permet de comparer deux valeurs. Renvoie true si les deux valeurs sont identitiques
  * Cette fonction mettra toujours le même temps à répondre quelque soit les deux valeurs spécifiées
  * afin d'empecher de déduire les longueurs des éléments à comparer
- * @param input {string|Buffer}
- * @param allowed {string|Buffer}
- * @returns {boolean}
+ * @param input {string|Buffer} chaine à comparer avec "allowed"
+ * @param allowed {string|Buffer} chaine de référence avec laquelle on compare "input"
+ * @returns {boolean} true = les deux chaine sont identique, false = les deux chaines sont différentes
  */
 function checkValue (input, allowed) {
     if (!(input instanceof Buffer)) {
@@ -76,21 +102,35 @@ function checkValue (input, allowed) {
 
 /**
  * Verifie qu'un utilisateur ait bien tapé son mot de passe
- * @param ctx {object}
- * @returns {boolean}
+ * @param ctx {object} contexte utilisateur fournit par ssh2
+ * @param nWrongPasswordDelay {number} nombre de millisecondes à attendre si le mot de passe est faux
+ * @returns {Promise<boolean>} true = le mot de passe est correcte
  */
-function checkUserPassword (ctx) {
-    const sUser = ctx.username, sPassword = ctx.password
-    if (sUser in USERS) {
-        const oUser = USERS[sUser]
-        const c = crypto.createHash(oUser.password.algo)
-        const sHashedPassword = c.update(sPassword).digest('hex')
-        return checkValue(sHashedPassword.toLowerCase(), oUser.password.hash.toLowerCase())
-    } else {
-        return false
-    }
+function checkUserPassword (ctx, nWrongPasswordDelay = GLOBALS.WRONG_PASSWORD_DELAY) {
+    return new Promise((resolve, reject) => {
+        const sUser = ctx.username, sPassword = ctx.password
+        if (sUser in USERS) {
+            const oUser = USERS[sUser]
+            const c = crypto.createHash(oUser.password.algo)
+            const sHashedPassword = c.update(sPassword).digest('hex')
+            if (checkValue(sHashedPassword.toLowerCase(), oUser.password.hash.toLowerCase())) {
+                resolve(true)
+                return
+            }
+        }
+        if (nWrongPasswordDelay > 0) {
+            setTimeout(() => resolve(false), nWrongPasswordDelay)
+        } else {
+            resolve(false)
+        }
+    })
 }
 
+/**
+ * Vérifie l'authenticité d'un utilisateur s'authentifiant avec une clé.
+ * @param ctx {object} contexte utilisateur fournit par ssh2
+ * @returns {boolean} true = l'utilisateur est bien authentifié
+ */
 function checkUserKey (ctx) {
     const sUser = ctx.username
     if (sUser in USERS) {
@@ -104,15 +144,25 @@ function checkUserKey (ctx) {
     }
 }
 
+/**
+ * Charge la clé du serveur
+ * @returns {Buffer[]}
+ */
 function loadHostPrivateKey () {
     return [fs.readFileSync(PATH.PRIV_KEY)]
 }
 
 let bInit = false
 
-function init() {
+/**
+ * Initialisation du chargement des clés utilisateurs
+ * @param WRONG_PASSWORD_DELAY {number}
+ * @param PATH_SECRET {string}
+ */
+function init({ WRONG_PASSWORD_DELAY, PATH_SECRET }) {
     if (!bInit) {
-        loadConfig()
+        GLOBALS.WRONG_PASSWORD_DELAY = WRONG_PASSWORD_DELAY
+        definePathVariables(PATH_SECRET)
         checkFolders()
         loadUsers()
         bInit = true
@@ -123,5 +173,5 @@ module.exports = {
     init,
     loadHostPrivateKey,
     checkUserPassword,
-    checkUserKey
+    checkUserKey,
 }

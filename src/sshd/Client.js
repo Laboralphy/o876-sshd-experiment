@@ -72,11 +72,15 @@ class Client {
         switch (ctx.method) {
             case 'password':
                 // le client utilise une authentification par mot de passe
-                if (auth.checkUserPassword(ctx)) {
-                    this._username = ctx.username
-                    return ctx.accept()
-                }
-                break;
+                auth.checkUserPassword(ctx).then(result => {
+                    if (result) {
+                        this._username = ctx.username
+                        ctx.accept()
+                    } else {
+                        ctx.reject()
+                    }
+                })
+                break
 
             case 'publickey':
                 // l'utilisateur a posté une clé publique sur le serveur
@@ -84,12 +88,13 @@ class Client {
                     this._username = ctx.username
                     return ctx.accept()
                 }
-                break;
+                ctx.reject()
+                break
 
             default:
-                return ctx.reject();
+                ctx.reject()
+                break
         }
-        ctx.reject();
     }
 
     getStream (session) {
@@ -130,7 +135,6 @@ class Client {
 
         return screen
     }
-
 }
 
 module.exports = Client
