@@ -17,7 +17,6 @@ class Client {
         client.on('authentication', ctx => this.handleAuthentication(ctx))
         client.on('ready', () => this.handleReady())
         client.on('close', () => this.handleClose())
-        console.log('client', this.id, 'connected')
         this._events = new Events()
     }
 
@@ -53,12 +52,10 @@ class Client {
     }
 
     handleReady () {
-        console.log('client', this.id, 'authenticated as', this._username);
         this.client.on('session', (accept, reject) => this.handleSession(accept, reject))
     }
 
     handleClose () {
-        console.log('client', this.id, 'disconnected')
         if (this._screen && !this._screen.destroyed) {
             this._screen.destroy();
         }

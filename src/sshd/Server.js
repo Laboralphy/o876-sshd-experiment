@@ -1,15 +1,23 @@
-const debug = require('debug')
 const auth = require('./auth')
 const SSH2 = require('ssh2');
 const Client = require('./Client')
 const Events = require('events')
 
 class Server {
-    constructor (port) {
+    constructor () {
         this._events = new Events()
-        auth.init(process.env)
-        this.createServer(port)
         this._aClients = []
+        this._oServer = null
+    }
+
+    async init () {
+        auth.init(process.env)
+        const oPath = auth.getPaths()
+        this._oServer = await this.createServer(process.env.SERVER_PORT)
+    }
+
+    get port () {
+        return this._oServer.address().port
     }
 
     get clients () {
@@ -50,14 +58,15 @@ class Server {
     }
 
     createServer (port) {
-        const oSrvConfig = {
-            hostKeys: auth.loadHostPrivateKey()
-        }
-        const oServer = new SSH2.Server(oSrvConfig, client => this.handleConnection(client))
-        oServer.listen(port, '0.0.0.0', () => {
-            console.log('listening on port', oServer.address().port);
+        return new Promise(resolve => {
+            const oSrvConfig = {
+                hostKeys: auth.loadHostPrivateKey()
+            }
+            const oServer = new SSH2.Server(oSrvConfig, client => this.handleConnection(client))
+            oServer.listen(port, '0.0.0.0', () => {
+                resolve(oServer)
+            })
         })
-        return oServer
     }
 }
 
