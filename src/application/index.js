@@ -1,50 +1,110 @@
-const viewChat = require('./layouts/chat')
+const Chat = require('./layouts/chat')
+const Help = require('./layouts/help')
+const LayoutRouter = require('./layout-manager/Router')
 
-function writeToAllClients (server, text) {
-    server.clients.forEach(client => {
-        if (client.data.components) {
-            const c = client.data.components.console
-            c.pushLine(text)
-            c.scroll(Infinity)
-            client.screen.render()
+class Application {
+    constructor (server, client) {
+        this._server = server
+        this._client = client
+        this.buildRouter()
+    }
+
+    /**
+     * Construction de toutes les routes d'interface possible
+     */
+    buildRouter () {
+        const oLayoutRouter = new LayoutRouter()
+        oLayoutRouter.screen = this._client.screen
+        oLayoutRouter.addRoute('chat', Chat)
+        oLayoutRouter.addRoute('help', Help)
+        this._client.data.view = oLayoutRouter
+    }
+
+    /**
+     * Affiche l'interface correspondant à la route spécifiée
+     * @param sRoute {string}
+     */
+    showView (sRoute) {
+        this._client.data.view.show(sRoute)
+        this.render()
+    }
+
+    sendToAllClient (text) {
+        this._server.clients.forEach(client => {
+            if (client.data.view) {
+                client.data.view.getView('chat').print(text)
+                client.screen.render()
+            }
+        })
+    }
+
+    /**
+     * Raffraichi l'affichage du client
+     */
+    render () {
+        this._client.screen.render()
+    }
+
+    resetCommand () {
+        this._client.data.view.getView('chat').resetCommand()
+        this.render()
+    }
+
+    print (sText) {
+        this._client.data.view.getView('chat').print(sText)
+        this.render()
+    }
+
+    quit () {
+        this._client.screen.destroy()
+    }
+
+    funcKeyEvent (key) {
+        switch (key.name) {
+            case 'f1':
+                this.showView('help')
+                break
+
+            case 'f2':
+                this.showView('chat')
+                break
         }
-    })
+    }
+
+    run () {
+        this.showView('chat')
+        const oChat = this._client.data.view.getView('chat')
+        const ic = oChat.components.inputCommand
+        const screen = this._client.screen
+
+        ic.key(['escape'], (ch, key) => {
+            this.resetCommand()
+        })
+
+        ic.key(['enter'], (ch, key) => {
+            const text = ic.getValue()
+            ic.pushHistory(text)
+            this.resetCommand()
+            this.sendToAllClient(this._client.username + ': ' + text)
+        })
+
+        screen.key(['C-q'], (ch, key) => {
+            this.quit()
+        })
+
+        screen.key(['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12'], (ch, key) => {
+            this.funcKeyEvent(key)
+        })
+
+        ic.key(['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12'], (ch, key) => {
+            this.funcKeyEvent(key)
+        })
+    }
 }
 
-function focusCommand (client) {
-    const ic = client.data.components.inputCommand
-    const screen = client.screen
-    ic.clearValue()
-    ic.focus()
-    screen.render()
-}
-
-async function application (server, client) {
-    const screen = client.screen
-
-    const oComponents = viewChat(screen)
-    client.data.components = oComponents
-
-    const ic = oComponents.inputCommand
-    const csl = oComponents.console
-    csl.pushLine('{yellow-fg}Bienvenue sur le serveur.{/yellow-fg}')
-
-    ic.key(['escape'], function (ch, key) {
-        focusCommand(client)
-    })
-
-    ic.key(['C-q'], function (ch, key) {
-        screen.destroy()
-    })
-
-    ic.key(['enter'], function (ch, key) {
-        const text = ic.getValue()
-        ic.pushHistory(text)
-        focusCommand(client)
-        writeToAllClients(server, client.username + ': ' + text)
-    })
-
-    focusCommand(client)
+function application (server, client) {
+    const app = new Application(server, client)
+    app.run()
 }
 
 module.exports = application
