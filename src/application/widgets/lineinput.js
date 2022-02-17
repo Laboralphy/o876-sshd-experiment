@@ -1,5 +1,4 @@
 const blessed = require('blessed')
-const unicode = require('blessed/lib/unicode');
 const Node = blessed.widget.node
 const Textarea = blessed.widget.textarea
 

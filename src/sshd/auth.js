@@ -12,8 +12,7 @@ const PATH = {
 }
 
 const GLOBALS = {
-    WRONG_PASSWORD_DELAY: 0,
-    PATH_SECRET: '/home/ralphy/o876-sshd-secret'
+    WRONG_PASSWORD_DELAY: 0
 }
 
 const USERS = {}
@@ -21,10 +20,10 @@ const USERS = {}
 /**
  * Définition des variables globales stockant les chemins qui mène aux information clients (pass, username, id etc...)
  */
-function definePathVariables () {
+function definePathVariables (sSecretPath) {
     // dossier général contenant les information sensible (clé pub ou priv etc...)
     // Ce dossier doit être extérieur à l'application
-    PATH.SECRET = path.resolve(GLOBALS.PATH_SECRET)
+    PATH.SECRET = path.resolve(sSecretPath)
     // Dossier des fichiers utilisateurs
     PATH.USERS = path.join(PATH.SECRET, 'users')
     // Dossier content la clé privée du serveur
@@ -169,9 +168,18 @@ function init({ WRONG_PASSWORD_DELAY, PATH_SECRET }) {
     }
 }
 
+/**
+ * Renvoie les chemin calculé par definePathVariable
+ * @returns {{PRIV_KEY: string, USERS: string, SECRET: string}}
+ */
+function getPaths () {
+    return PATH
+}
+
 module.exports = {
     init,
     loadHostPrivateKey,
     checkUserPassword,
     checkUserKey,
+    getPaths
 }
