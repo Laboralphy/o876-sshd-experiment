@@ -1,5 +1,5 @@
 const blessed = require('blessed');
-const lineinput = require('./lineinput')
+require('./lineinput')
 
 function createMudView (parent) {
     const console = blessed.text({

@@ -13,7 +13,7 @@ const PATH = {
 
 const GLOBALS = {
     WRONG_PASSWORD_DELAY: 0,
-    PATH_SECRET
+    PATH_SECRET: '/home/ralphy/o876-sshd-secret'
 }
 
 const USERS = {}
